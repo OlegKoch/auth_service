@@ -17,3 +17,10 @@ class UserOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+
+
+class TokenOut(BaseModel):
+    token: str
+    token_type: str

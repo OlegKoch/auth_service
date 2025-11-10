@@ -7,10 +7,10 @@ from sqlalchemy.exc import IntegrityError
 from src.auth.dependencies import get_current_user
 from src.auth.models import User
 from src.auth.utils import hash_password, verify_password, create_jwt_token
-from src.auth.schemas import RegisterIn, UserOut, LoginIn
+from src.auth.schemas import RegisterIn, UserOut, LoginIn, TokenOut
 from src.database import get_db
 
-router = APIRouter(prefix='api/v1/auth', tags=['auth'])
+router = APIRouter(prefix="/api/v1/auth", tags=['auth'])
 
 @router.post("/register", response_model=UserOut)
 async def register(
@@ -19,7 +19,7 @@ async def register(
 ):
     user = User(
         username=payload.username,
-        pass_hash=hash_password(payload.password),
+        pass_hash= await hash_password(payload.password),
         info=payload.info
     )
 
@@ -30,13 +30,11 @@ async def register(
         await db.rollback()
         raise HTTPException(status_code=400, detail="Username already taken")
 
-    except Exception:
-        raise HTTPException(status_code=500, detail="Internal server error")
     await db.refresh(user)
     return user
 
 
-@router.post("/login", response_model=UserOut)
+@router.post("/login", response_model=TokenOut)
 async def login(
         payload: LoginIn,
         db: AsyncSession = Depends(get_db)
@@ -48,12 +46,12 @@ async def login(
         if not user:
             raise ValueError("User not found")
 
-        if not verify_password(payload.password, user.pass_hash):
+        if not await verify_password(payload.password, user.pass_hash):
             raise ValueError("Invalid password")
 
-        token = create_jwt_token(sub=user.username)
+        token = await create_jwt_token(sub=user.username)
 
-        return {"access_token": token, "token_type": "bearer"}
+        return {"token": token, "token_type": "bearer"}
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -62,7 +60,7 @@ async def login(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.get('/me')
+@router.get('/me', response_model=UserOut)
 async def read_current_user(
         current_user: User = Depends(get_current_user)
 ):

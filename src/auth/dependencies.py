@@ -16,7 +16,7 @@ async def get_current_user(
         credentials = Depends(security)
 ):
     token = credentials.credentials
-    payload = decode_jwt(token)
+    payload = await decode_jwt(token)
 
     if not payload or 'sub' not in payload:
         raise HTTPException(status_code=401, detail='Invalid or expired token')
