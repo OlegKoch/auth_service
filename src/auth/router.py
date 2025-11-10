@@ -3,6 +3,8 @@ from fastapi.params import Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
+
+from src.auth.dependencies import get_current_user
 from src.auth.models import User
 from src.auth.utils import hash_password, verify_password, create_jwt_token
 from src.auth.schemas import RegisterIn, UserOut, LoginIn
@@ -59,4 +61,10 @@ async def login(
     except Exception:
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
+@router.get('/me')
+async def read_current_user(
+        current_user: User = Depends(get_current_user)
+):
+    return current_user
 
